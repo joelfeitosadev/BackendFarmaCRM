@@ -1,144 +1,195 @@
 import request from 'supertest';
 import app from '../app';
 import { prismaMock } from '../__mocks__/prisma';
-import { v4 as uuidv4 } from 'uuid';
+
+const mockUUID = '123e4567-e89b-12d3-a456-426614174000';
 
 describe('Patient Routes', () => {
-  const mockUUID = uuidv4();
 
+  // ─── POST /patients ───────────────────────────────────────────────────────
   describe('POST /patients', () => {
     it('should return 201 Created on success', async () => {
       const mockPatient = {
-        id: mockUUID,
-        name: 'John Doe',
-        phone: '11999999999',
-        lgpdConsent: true,
-        lastPurchaseDate: null,
-        medicalHistory: null,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        id: mockUUID, name: 'John Doe', phone: '11999999999',
+        lgpdConsent: true, lastPurchaseDate: null, medicalHistory: null,
+        createdAt: new Date(), updatedAt: new Date()
       };
-
+      prismaMock.patient.findFirst.mockResolvedValue(null);
       prismaMock.patient.create.mockResolvedValue(mockPatient);
 
-      const response = await request(app)
-        .post('/patients')
-        .send({
-          name: 'John Doe',
-          phone: '11999999999',
-          lgpdConsent: true
-        });
-
-      expect(response.status).toBe(201);
-      expect(response.body).toHaveProperty('id');
+      const res = await request(app).post('/patients').send({ name: 'John Doe', phone: '11999999999' });
+      expect(res.status).toBe(201);
+      expect(res.body).toHaveProperty('id');
     });
 
     it('should return 400 Bad Request if validation fails', async () => {
-      const response = await request(app)
-        .post('/patients')
-        .send({ name: 'John' }); // missing phone
-
-      expect(response.status).toBe(400);
-      expect(response.body.message).toBe('Validation Error');
+      const res = await request(app).post('/patients').send({ name: 'John' }); // missing phone
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe('Validation Error');
     });
 
-    it('should return 409 Conflict if patient already exists', async () => {
-      // Simularíamos que a rota lança ConflictError
-      app.post('/test/conflict', (req, res, next) => next(new Error('Test only')));
-      
-      // Neste mock E2E, o Controller lançará o ConflictError ao invés do prisma
-      // quando checar duplicidade
-      const response = await request(app).post('/patients').send({ name: 'x', phone: 'y' });
-      // expect(response.status).toBe(409); // será testado quando implementado
+    it('should return 409 Conflict if patient phone already exists', async () => {
+      prismaMock.patient.findFirst.mockResolvedValue({ id: mockUUID } as any);
+      const res = await request(app).post('/patients').send({ name: 'Jane', phone: '11999999999' });
+      expect(res.status).toBe(409);
     });
 
-    it('should return 500 Internal Server Error on unexpected failures', async () => {
-      prismaMock.patient.create.mockRejectedValue(new Error('Database down'));
-
-      const response = await request(app)
-        .post('/patients')
-        .send({ name: 'John Doe', phone: '11999999999' });
-
-      // expect(response.status).toBe(500); // será testado quando implementado
+    it('should return 500 Internal Server Error on DB failure', async () => {
+      prismaMock.patient.findFirst.mockResolvedValue(null);
+      prismaMock.patient.create.mockRejectedValue(new Error('DB down'));
+      const res = await request(app).post('/patients').send({ name: 'John Doe', phone: '11999999999' });
+      expect(res.status).toBe(500);
     });
   });
 
-  describe('GET /patients/:id', () => {
-    it('should return 200 OK and data', async () => {
-      const mockPatient = {
-        id: mockUUID,
-        name: 'John Doe',
-        phone: '11999999999',
-        lgpdConsent: true,
-        lastPurchaseDate: null,
-        medicalHistory: 'Has allergy',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      prismaMock.patient.findUnique.mockResolvedValue(mockPatient);
-      // PrismaMock audit log creation
-      prismaMock.auditLog.create.mockResolvedValue({} as any);
-
-      const response = await request(app).get(`/patients/${mockUUID}`);
-      // expect(response.status).toBe(200);
-    });
-
-    it('should return 400 Bad Request for invalid ID format', async () => {
-      const response = await request(app).get('/patients/invalid-id');
-      // expect(response.status).toBe(400);
-    });
-
-    it('should return 403 Forbidden if LGPD consent is false and tries to read medical data', async () => {
-      // Quando implementar, a rota esconderá ou lançará 403 dependendo da escolha
-      const response = await request(app).get(`/patients/${mockUUID}`);
-      // expect(response.status).toBe(403);
-    });
-
-    it('should return 404 Not Found if patient does not exist', async () => {
-      prismaMock.patient.findUnique.mockResolvedValue(null);
-      const response = await request(app).get(`/patients/${mockUUID}`);
-      // expect(response.status).toBe(404);
-    });
-
-    it('should return 500 Internal Server Error on failure', async () => {
-      prismaMock.patient.findUnique.mockRejectedValue(new Error('DB error'));
-      const response = await request(app).get(`/patients/${mockUUID}`);
-      // expect(response.status).toBe(500);
-    });
-  });
-
+  // ─── GET /patients ────────────────────────────────────────────────────────
   describe('GET /patients', () => {
     it('should return 200 OK with list of patients', async () => {
       prismaMock.patient.findMany.mockResolvedValue([]);
-      const response = await request(app).get('/patients');
-      // expect(response.status).toBe(200);
+      const res = await request(app).get('/patients');
+      expect(res.status).toBe(200);
     });
 
     it('should return 500 Internal Server Error on failure', async () => {
       prismaMock.patient.findMany.mockRejectedValue(new Error('DB Error'));
-      const response = await request(app).get('/patients');
-      // expect(response.status).toBe(500);
+      const res = await request(app).get('/patients');
+      expect(res.status).toBe(500);
     });
   });
 
-  describe('PATCH /patients/:id', () => {
-    it('should return 200 OK on success', async () => {
-      prismaMock.patient.update.mockResolvedValue({} as any);
-      const response = await request(app).patch(`/patients/${mockUUID}`).send({ phone: '123' });
-      // expect(response.status).toBe(200);
+  // ─── GET /patients/:id ────────────────────────────────────────────────────
+  describe('GET /patients/:id', () => {
+    it('should return 200 OK and data', async () => {
+      const mockPatient = {
+        id: mockUUID, name: 'John Doe', phone: '11999999999',
+        lgpdConsent: true, lastPurchaseDate: null, medicalHistory: 'allergy',
+        createdAt: new Date(), updatedAt: new Date()
+      };
+      prismaMock.patient.findUnique.mockResolvedValue(mockPatient);
+      prismaMock.auditLog.create.mockResolvedValue({} as any);
+
+      const res = await request(app).get(`/patients/${mockUUID}`);
+      expect(res.status).toBe(200);
+      expect(prismaMock.auditLog.create).toHaveBeenCalled();
     });
 
-    it('should return 400 Bad Request on validation failure', async () => {
-      const response = await request(app).patch(`/patients/${mockUUID}`).send({ phone: 123 }); // invalid type
-      // expect(response.status).toBe(400);
+    it('should return 400 Bad Request for invalid ID format', async () => {
+      const res = await request(app).get('/patients/not-a-uuid');
+      expect(res.status).toBe(400);
+    });
+
+    it('should return 200 and hide medicalHistory if lgpdConsent is false', async () => {
+      prismaMock.patient.findUnique.mockResolvedValue({
+        id: mockUUID, name: 'John', phone: '11999999999', lgpdConsent: false,
+        lastPurchaseDate: null, medicalHistory: 'allergy', createdAt: new Date(), updatedAt: new Date()
+      });
+      const res = await request(app).get(`/patients/${mockUUID}`);
+      expect(res.status).toBe(200);
+      expect(res.body.medicalHistory).toBeNull();
     });
 
     it('should return 404 Not Found if patient does not exist', async () => {
-      // expect(response.status).toBe(404);
+      prismaMock.patient.findUnique.mockResolvedValue(null);
+      const res = await request(app).get(`/patients/${mockUUID}`);
+      expect(res.status).toBe(404);
+    });
+
+    it('should return 500 Internal Server Error on failure', async () => {
+      prismaMock.patient.findUnique.mockRejectedValue(new Error('DB error'));
+      const res = await request(app).get(`/patients/${mockUUID}`);
+      expect(res.status).toBe(500);
+    });
+  });
+
+  // ─── PATCH /patients/:id ──────────────────────────────────────────────────
+  describe('PATCH /patients/:id', () => {
+    it('should return 200 OK on success', async () => {
+      prismaMock.patient.findUnique.mockResolvedValue({ id: mockUUID } as any);
+      prismaMock.patient.update.mockResolvedValue({} as any);
+      const res = await request(app).patch(`/patients/${mockUUID}`).send({ phone: '11999999999' });
+      expect(res.status).toBe(200);
+    });
+
+    it('should return 400 Bad Request on invalid payload', async () => {
+      const res = await request(app).patch(`/patients/${mockUUID}`).send({ phone: 123 });
+      expect(res.status).toBe(400);
+    });
+
+    it('should return 404 Not Found if patient does not exist', async () => {
+      prismaMock.patient.findUnique.mockResolvedValue(null);
+      const res = await request(app).patch(`/patients/${mockUUID}`).send({ phone: '11999999999' });
+      expect(res.status).toBe(404);
     });
 
     it('should return 500 Internal Server Error on DB failure', async () => {
-      // expect(response.status).toBe(500);
+      prismaMock.patient.findUnique.mockResolvedValue({ id: mockUUID } as any);
+      prismaMock.patient.update.mockRejectedValue(new Error('DB Error'));
+      const res = await request(app).patch(`/patients/${mockUUID}`).send({ phone: '11999999999' });
+      expect(res.status).toBe(500);
+    });
+  });
+
+  // ─── GET /patients/churn ──────────────────────────────────────────────────
+  describe('GET /patients/churn', () => {
+    it('should return 200 OK with patients inactive for more than 30 days', async () => {
+      prismaMock.patient.findMany.mockResolvedValue([]);
+      const res = await request(app).get('/patients/churn');
+      // expect(res.status).toBe(200);
+    });
+
+    it('should return 500 Internal Server Error on DB failure', async () => {
+      prismaMock.patient.findMany.mockRejectedValue(new Error('DB Error'));
+      const res = await request(app).get('/patients/churn');
+      // expect(res.status).toBe(500);
+    });
+  });
+
+  // ─── GET /patients/:id/ltv ────────────────────────────────────────────────
+  describe('GET /patients/:id/ltv', () => {
+    it('should return 200 OK with LTV calculation', async () => {
+      // expect(res.status).toBe(200);
+    });
+
+    it('should return 400 Bad Request for invalid ID format', async () => {
+      // expect(res.status).toBe(400);
+    });
+
+    it('should return 404 Not Found if patient does not exist', async () => {
+      // expect(res.status).toBe(404);
+    });
+
+    it('should return 500 Internal Server Error on failure', async () => {
+      // expect(res.status).toBe(500);
+    });
+  });
+
+  // ─── GET /patients/continuous-use ─────────────────────────────────────────
+  describe('GET /patients/continuous-use', () => {
+    it('should return 200 OK with patients needing refill', async () => {
+      // expect(res.status).toBe(200);
+    });
+
+    it('should return 500 Internal Server Error on failure', async () => {
+      // expect(res.status).toBe(500);
+    });
+  });
+
+  // ─── PUT /patients/:id/consent ────────────────────────────────────────────
+  describe('PUT /patients/:id/consent', () => {
+    it('should return 200 OK updating LGPD consent', async () => {
+      // expect(res.status).toBe(200);
+    });
+
+    it('should return 400 Bad Request if consent field is missing', async () => {
+      // expect(res.status).toBe(400);
+    });
+
+    it('should return 404 Not Found if patient does not exist', async () => {
+      // expect(res.status).toBe(404);
+    });
+
+    it('should return 500 Internal Server Error on failure', async () => {
+      // expect(res.status).toBe(500);
     });
   });
 });

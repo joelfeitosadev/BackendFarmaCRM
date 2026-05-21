@@ -22,13 +22,13 @@ export const errorHandler = (
       status: 'error',
       statusCode: 400,
       message: 'Validation Error',
-      details: err.errors,
+      details: err.issues,
     });
     return;
   }
 
   console.error('[Unhandled Error]', err);
-  
+
   res.status(500).json({
     status: 'error',
     statusCode: 500,
