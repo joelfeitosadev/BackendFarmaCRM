@@ -9,6 +9,11 @@ import { requestLogger } from './middlewares/requestLogger';
 import patientRoutes from './routes/patient.routes';
 import productRoutes from './routes/product.routes';
 import serviceRoutes from './routes/service.routes';
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yamljs';
+import path from 'path';
+
+const swaggerDocument = YAML.load(path.join(__dirname, 'docs/swagger.yaml'));
 
 const app = express();
 
@@ -20,6 +25,7 @@ app.use(requestLogger);
 app.use('/patients', patientRoutes);
 app.use('/products', productRoutes);
 app.use('/services', serviceRoutes);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Global Error Handler
 app.use(errorHandler);

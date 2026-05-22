@@ -1,0 +1,435 @@
+openapi: 3.0.0
+info:
+  title: FarmaCRM API
+  description: Backend services for FarmaCRM (Patients, Products, and Services).
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+
+paths:
+  # -------------------------
+  # PATIENTS
+  # -------------------------
+  /patients:
+    get:
+      tags:
+        - Patients
+      summary: Get all patients
+      responses:
+        '200':
+          description: A list of patients.
+    post:
+      tags:
+        - Patients
+      summary: Create a new patient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePatientInput'
+      responses:
+        '201':
+          description: Patient created successfully.
+        '400':
+          description: Validation error.
+        '409':
+          description: Patient with this phone already exists.
+
+  /patients/churn:
+    get:
+      tags:
+        - Patients
+      summary: Get churned patients (no purchases in last 30 days)
+      responses:
+        '200':
+          description: List of churned patients.
+
+  /patients/continuous-use:
+    get:
+      tags:
+        - Patients
+      summary: Get patients needing continuous use restock
+      responses:
+        '200':
+          description: List of patients needing restock.
+
+  /patients/{id}:
+    get:
+      tags:
+        - Patients
+      summary: Get patient by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Patient details.
+        '404':
+          description: Patient not found.
+    patch:
+      tags:
+        - Patients
+      summary: Update a patient
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePatientInput'
+      responses:
+        '200':
+          description: Patient updated successfully.
+        '404':
+          description: Patient not found.
+
+  /patients/{id}/ltv:
+    get:
+      tags:
+        - Patients
+      summary: Calculate Lifetime Value (LTV) for a patient
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: LTV calculation result.
+        '404':
+          description: Patient not found.
+
+  /patients/{id}/consent:
+    put:
+      tags:
+        - Patients
+      summary: Update LGPD consent for a patient
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - lgpdConsent
+              properties:
+                lgpdConsent:
+                  type: boolean
+      responses:
+        '200':
+          description: Consent updated successfully.
+        '404':
+          description: Patient not found.
+
+  # -------------------------
+  # PRODUCTS
+  # -------------------------
+  /products:
+    get:
+      tags:
+        - Products
+      summary: Get all products
+      parameters:
+        - in: query
+          name: abcClass
+          schema:
+            type: string
+            enum: [A, B, C]
+      responses:
+        '200':
+          description: A list of products.
+    post:
+      tags:
+        - Products
+      summary: Create a new product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductInput'
+      responses:
+        '201':
+          description: Product created successfully.
+        '400':
+          description: Validation error.
+        '409':
+          description: Product with this active ingredient already exists.
+
+  /products/process-abc:
+    post:
+      tags:
+        - Products
+      summary: Recalculate ABC curve for all products
+      responses:
+        '200':
+          description: ABC curve processed successfully.
+
+  /products/expiration-alerts:
+    get:
+      tags:
+        - Products
+      summary: Get products expiring within 60 days
+      responses:
+        '200':
+          description: List of expiring products.
+
+  /products/restock:
+    get:
+      tags:
+        - Products
+      summary: Get products below minimum stock
+      responses:
+        '200':
+          description: List of products needing restock.
+
+  /products/{id}:
+    get:
+      tags:
+        - Products
+      summary: Get product by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Product details.
+        '404':
+          description: Product not found.
+    patch:
+      tags:
+        - Products
+      summary: Update a product
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductInput'
+      responses:
+        '200':
+          description: Product updated successfully.
+        '404':
+          description: Product not found.
+
+  # -------------------------
+  # SERVICES
+  # -------------------------
+  /services:
+    post:
+      tags:
+        - Services
+      summary: Create a new service (Atendimento)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateServiceInput'
+      responses:
+        '201':
+          description: Service created successfully.
+        '400':
+          description: Validation error.
+        '404':
+          description: Patient not found.
+
+  /services/{id}:
+    get:
+      tags:
+        - Services
+      summary: Get service by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Service details.
+        '404':
+          description: Service not found.
+
+  /services/{id}/move:
+    put:
+      tags:
+        - Services
+      summary: Move service status on Kanban
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [ORCAMENTO, AGUARDANDO_RECEITA, PRONTO_ENTREGA, FINALIZADO]
+      responses:
+        '200':
+          description: Status updated successfully.
+        '403':
+          description: Forbidden to finalize without validated prescription.
+        '404':
+          description: Service not found.
+        '409':
+          description: Invalid transition or insufficient stock.
+
+  /services/{id}/prescription:
+    post:
+      tags:
+        - Services
+      summary: Add and validate prescription data
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - prescriptionData
+              properties:
+                prescriptionData:
+                  type: string
+      responses:
+        '200':
+          description: Prescription validated and saved.
+        '404':
+          description: Service not found.
+
+components:
+  schemas:
+    CreatePatientInput:
+      type: object
+      required:
+        - name
+        - phone
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        lgpdConsent:
+          type: boolean
+        medicalHistory:
+          type: string
+
+    UpdatePatientInput:
+      type: object
+      properties:
+        phone:
+          type: string
+        lgpdConsent:
+          type: boolean
+
+    CreateProductInput:
+      type: object
+      required:
+        - activeIngredient
+        - stockQuantity
+        - expirationDate
+        - costPrice
+        - salePrice
+      properties:
+        activeIngredient:
+          type: string
+        stockQuantity:
+          type: integer
+        expirationDate:
+          type: string
+          format: date-time
+        costPrice:
+          type: number
+        salePrice:
+          type: number
+        minimumStock:
+          type: integer
+
+    UpdateProductInput:
+      type: object
+      properties:
+        stockQuantity:
+          type: integer
+        salePrice:
+          type: number
+        costPrice:
+          type: number
+        minimumStock:
+          type: integer
+
+    CreateServiceInput:
+      type: object
+      required:
+        - patientId
+        - products
+      properties:
+        patientId:
+          type: string
+          format: uuid
+        products:
+          type: array
+          items:
+            type: object
+            required:
+              - productId
+              - quantity
+            properties:
+              productId:
+                type: string
+                format: uuid
+              quantity:
+                type: integer
+              dosageAmount:
+                type: number
+              dosageIntervalDays:
+                type: number
