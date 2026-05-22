@@ -1,7 +1,7 @@
 import { PatientRepository } from '../repositories/patient.repository';
 import { ConflictError, NotFoundError } from '../utils/errors';
-import prisma from '../client';
-import { Prisma } from '../../generated/prisma';
+import prisma from '../database/prisma';
+import { Prisma } from '@prisma/client';
 
 export class PatientService {
   private patientRepository = new PatientRepository();
@@ -47,5 +47,80 @@ export class PatientService {
       throw new NotFoundError('Patient not found');
     }
     return this.patientRepository.update(id, data);
+  }
+
+  async updateConsent(id: string, lgpdConsent: boolean) {
+    const patient = await this.patientRepository.findById(id);
+    if (!patient) {
+      throw new NotFoundError('Patient not found');
+    }
+    return this.patientRepository.update(id, { lgpdConsent });
+  }
+
+  async getChurn() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return prisma.patient.findMany({
+      where: {
+        lastPurchaseDate: { lt: thirtyDaysAgo }
+      },
+      orderBy: { lastPurchaseDate: 'asc' }
+    });
+  }
+
+  async getLtv(id: string) {
+    const patient = await this.patientRepository.findById(id);
+    if (!patient) {
+      throw new NotFoundError('Patient not found');
+    }
+    // LTV = soma do lucro acumulado de todos os produtos vendidos ao paciente
+    const services = await prisma.service.findMany({
+      where: { patientId: id, status: 'FINALIZADO' },
+      include: { products: { include: { product: true } } }
+    });
+    const ltv = services.reduce((total, service) => {
+      return total + service.products.reduce((sum, sp) => {
+        return sum + Number(sp.product.accumulatedProfit);
+      }, 0);
+    }, 0);
+    return { patientId: id, ltv };
+  }
+
+  async getContinuousUse() {
+    // Retorna pacientes cujos produtos estão próximos do vencimento da posologia
+    const today = new Date();
+    const serviceProducts = await prisma.serviceProduct.findMany({
+      where: { service: { status: 'FINALIZADO' } },
+      include: {
+        service: { include: { patient: true } },
+        product: true
+      }
+    });
+
+    return serviceProducts
+      .filter(sp => {
+        const lastPurchase = sp.service.patient.lastPurchaseDate;
+        if (!lastPurchase) return false;
+        const consumptionPerDay = sp.dosageAmount / sp.dosageIntervalDays;
+        const daysOfSupply = sp.quantity / consumptionPerDay;
+        const refillDate = new Date(lastPurchase);
+        refillDate.setDate(refillDate.getDate() + Math.floor(daysOfSupply));
+        // Retorna se a data de reposição já chegou ou está nos próximos 7 dias
+        const sevenDaysFromNow = new Date();
+        sevenDaysFromNow.setDate(today.getDate() + 7);
+        return refillDate <= sevenDaysFromNow;
+      })
+      .map(sp => ({
+        patient: sp.service.patient,
+        product: sp.product,
+        refillDue: (() => {
+          const lastPurchase = sp.service.patient.lastPurchaseDate!;
+          const consumptionPerDay = sp.dosageAmount / sp.dosageIntervalDays;
+          const daysOfSupply = sp.quantity / consumptionPerDay;
+          const refillDate = new Date(lastPurchase);
+          refillDate.setDate(refillDate.getDate() + Math.floor(daysOfSupply));
+          return refillDate;
+        })()
+      }));
   }
 }

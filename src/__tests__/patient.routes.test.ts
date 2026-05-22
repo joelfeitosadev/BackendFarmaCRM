@@ -134,62 +134,86 @@ describe('Patient Routes', () => {
     it('should return 200 OK with patients inactive for more than 30 days', async () => {
       prismaMock.patient.findMany.mockResolvedValue([]);
       const res = await request(app).get('/patients/churn');
-      // expect(res.status).toBe(200);
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
     });
 
     it('should return 500 Internal Server Error on DB failure', async () => {
       prismaMock.patient.findMany.mockRejectedValue(new Error('DB Error'));
       const res = await request(app).get('/patients/churn');
-      // expect(res.status).toBe(500);
+      expect(res.status).toBe(500);
     });
   });
 
   // ─── GET /patients/:id/ltv ────────────────────────────────────────────────
   describe('GET /patients/:id/ltv', () => {
     it('should return 200 OK with LTV calculation', async () => {
-      // expect(res.status).toBe(200);
+      prismaMock.patient.findUnique.mockResolvedValue({ id: mockUUID } as any);
+      prismaMock.service.findMany.mockResolvedValue([]);
+      const res = await request(app).get(`/patients/${mockUUID}/ltv`);
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('ltv');
     });
 
     it('should return 400 Bad Request for invalid ID format', async () => {
-      // expect(res.status).toBe(400);
+      const res = await request(app).get('/patients/not-a-uuid/ltv');
+      expect(res.status).toBe(400);
     });
 
     it('should return 404 Not Found if patient does not exist', async () => {
-      // expect(res.status).toBe(404);
+      prismaMock.patient.findUnique.mockResolvedValue(null);
+      const res = await request(app).get(`/patients/${mockUUID}/ltv`);
+      expect(res.status).toBe(404);
     });
 
     it('should return 500 Internal Server Error on failure', async () => {
-      // expect(res.status).toBe(500);
+      prismaMock.patient.findUnique.mockRejectedValue(new Error('DB error'));
+      const res = await request(app).get(`/patients/${mockUUID}/ltv`);
+      expect(res.status).toBe(500);
     });
   });
 
   // ─── GET /patients/continuous-use ─────────────────────────────────────────
   describe('GET /patients/continuous-use', () => {
     it('should return 200 OK with patients needing refill', async () => {
-      // expect(res.status).toBe(200);
+      prismaMock.serviceProduct.findMany.mockResolvedValue([]);
+      const res = await request(app).get('/patients/continuous-use');
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
     });
 
     it('should return 500 Internal Server Error on failure', async () => {
-      // expect(res.status).toBe(500);
+      prismaMock.serviceProduct.findMany.mockRejectedValue(new Error('DB error'));
+      const res = await request(app).get('/patients/continuous-use');
+      expect(res.status).toBe(500);
     });
   });
 
   // ─── PUT /patients/:id/consent ────────────────────────────────────────────
   describe('PUT /patients/:id/consent', () => {
     it('should return 200 OK updating LGPD consent', async () => {
-      // expect(res.status).toBe(200);
+      prismaMock.patient.findUnique.mockResolvedValue({ id: mockUUID } as any);
+      prismaMock.patient.update.mockResolvedValue({} as any);
+      const res = await request(app).put(`/patients/${mockUUID}/consent`).send({ lgpdConsent: true });
+      expect(res.status).toBe(200);
     });
 
     it('should return 400 Bad Request if consent field is missing', async () => {
-      // expect(res.status).toBe(400);
+      const res = await request(app).put(`/patients/${mockUUID}/consent`).send({});
+      expect(res.status).toBe(400);
     });
 
     it('should return 404 Not Found if patient does not exist', async () => {
-      // expect(res.status).toBe(404);
+      prismaMock.patient.findUnique.mockResolvedValue(null);
+      const res = await request(app).put(`/patients/${mockUUID}/consent`).send({ lgpdConsent: false });
+      expect(res.status).toBe(404);
     });
 
     it('should return 500 Internal Server Error on failure', async () => {
-      // expect(res.status).toBe(500);
+      prismaMock.patient.findUnique.mockResolvedValue({ id: mockUUID } as any);
+      prismaMock.patient.update.mockRejectedValue(new Error('DB error'));
+      const res = await request(app).put(`/patients/${mockUUID}/consent`).send({ lgpdConsent: true });
+      expect(res.status).toBe(500);
     });
   });
 });
