@@ -38,14 +38,10 @@ export class ProductService {
   }
 
   async processAbcCurve() {
-    // 1. Get all products
     const products = await this.productRepository.findAll();
-    
-    // 2. Calculate total accumulated profit
     const totalProfit = products.reduce((acc, p) => acc + Number(p.accumulatedProfit), 0);
 
     if (totalProfit === 0) {
-      // If no profit at all, all products remain or become class C
       for (const p of products) {
         if (p.abcClass !== 'C') {
           await this.productRepository.update(p.id, { abcClass: 'C' } as any);
@@ -54,12 +50,10 @@ export class ProductService {
       return { message: 'ABC processed successfully. All C due to zero total profit.' };
     }
 
-    // 3. Sort descending by profit
     const sorted = [...products].sort((a, b) => Number(b.accumulatedProfit) - Number(a.accumulatedProfit));
 
     let runningSum = 0;
     
-    // 4. Assign classes using a transaction to ensure all or nothing
     await prisma.$transaction(async (tx) => {
       for (const p of sorted) {
         runningSum += Number(p.accumulatedProfit);

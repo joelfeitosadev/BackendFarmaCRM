@@ -73,7 +73,6 @@ export class PatientService {
     if (!patient) {
       throw new NotFoundError('Patient not found');
     }
-    // LTV = soma do lucro acumulado de todos os produtos vendidos ao paciente
     const services = await prisma.service.findMany({
       where: { patientId: id, status: 'FINALIZADO' },
       include: { products: { include: { product: true } } }
@@ -87,7 +86,6 @@ export class PatientService {
   }
 
   async getContinuousUse() {
-    // Retorna pacientes cujos produtos estão próximos do vencimento da posologia
     const today = new Date();
     const serviceProducts = await prisma.serviceProduct.findMany({
       where: { service: { status: 'FINALIZADO' } },
@@ -105,7 +103,6 @@ export class PatientService {
         const daysOfSupply = sp.quantity / consumptionPerDay;
         const refillDate = new Date(lastPurchase);
         refillDate.setDate(refillDate.getDate() + Math.floor(daysOfSupply));
-        // Retorna se a data de reposição já chegou ou está nos próximos 7 dias
         const sevenDaysFromNow = new Date();
         sevenDaysFromNow.setDate(today.getDate() + 7);
         return refillDate <= sevenDaysFromNow;

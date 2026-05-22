@@ -160,7 +160,6 @@ describe('Service (Atendimento) Routes', () => {
       const waitingRx = { ...mockService, status: 'AGUARDANDO_RECEITA' };
       prismaMock.service.findUnique.mockResolvedValue(waitingRx as any);
       
-      // Moking $transaction to throw ConflictError because of insufficient stock
       prismaMock.$transaction.mockImplementation(async (cb) => {
         const { ConflictError } = require('../utils/errors');
         throw new ConflictError('Insufficient stock');
