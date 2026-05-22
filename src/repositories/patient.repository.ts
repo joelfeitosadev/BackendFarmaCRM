@@ -1,5 +1,5 @@
-import prisma from '../client';
-import { Prisma } from '../../generated/prisma';
+import prisma from '../database/prisma';
+import { Prisma } from '@prisma/client';
 
 export class PatientRepository {
   async create(data: Prisma.PatientCreateInput) {

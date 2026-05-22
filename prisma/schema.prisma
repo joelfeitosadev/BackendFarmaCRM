@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -31,13 +30,14 @@ model Patient {
 
 model Product {
   id                String           @id @default(uuid())
-  activeIngredient  String
+  activeIngredient  String           @unique
   stockQuantity     Int
   expirationDate    DateTime
   costPrice         Decimal          @db.Decimal(10, 2)
   salePrice         Decimal          @db.Decimal(10, 2)
   accumulatedProfit Decimal          @default(0) @db.Decimal(10, 2)
-  abcClass          String           @db.Char(1)
+  abcClass          String           @default("C") @db.Char(1)
+  minimumStock      Int              @default(0)
 
   services          ServiceProduct[]
 
@@ -68,7 +68,9 @@ model ServiceProduct {
   service   Service  @relation(fields: [serviceId], references: [id])
   productId String
   product   Product  @relation(fields: [productId], references: [id])
-  quantity  Int      @default(1)
+  quantity             Int      @default(1)
+  dosageAmount         Int      @default(1)   // Quantidade por tomada (ex: 1 comprimido)
+  dosageIntervalDays   Int      @default(1)   // Intervalo em dias (ex: 1=diário, 7=semanal, 30=mensal)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
