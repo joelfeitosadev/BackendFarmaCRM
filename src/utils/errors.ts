@@ -22,6 +22,13 @@ export class UnauthorizedError extends HttpError {
   }
 }
 
+export class ForbiddenError extends HttpError {
+  constructor(message: string = 'Forbidden') {
+    super(message, 403);
+    Object.setPrototypeOf(this, ForbiddenError.prototype);
+  }
+}
+
 export class NotFoundError extends HttpError {
   constructor(message: string = 'Not Found') {
     super(message, 404);
