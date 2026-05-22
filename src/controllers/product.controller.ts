@@ -1,25 +1,9 @@
 import { Request, Response } from 'express';
 import { ProductService } from '../services/product.service';
+import { createProductSchema, updateProductSchema } from '../schemas/product.schema';
 import { z } from 'zod';
 
 const productService = new ProductService();
-
-// Validation Schemas
-const createProductSchema = z.object({
-  activeIngredient: z.string().min(1),
-  stockQuantity: z.number().int().min(0),
-  expirationDate: z.string().datetime(),
-  costPrice: z.number().min(0),
-  salePrice: z.number().min(0),
-  minimumStock: z.number().int().min(0).optional(),
-});
-
-const updateProductSchema = z.object({
-  stockQuantity: z.number().int().min(0).optional(),
-  salePrice: z.number().min(0).optional(),
-  costPrice: z.number().min(0).optional(),
-  minimumStock: z.number().int().min(0).optional(),
-});
 
 export class ProductController {
   async create(req: Request, res: Response) {

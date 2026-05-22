@@ -1,24 +1,6 @@
 import { Request, Response } from 'express';
 import { PatientService } from '../services/patient.service';
-import { z } from 'zod';
-
-const createPatientSchema = z.object({
-  name: z.string().min(1),
-  phone: z.string().min(10),
-  lgpdConsent: z.boolean().optional(),
-  medicalHistory: z.string().optional().nullable()
-});
-
-const updatePatientSchema = z.object({
-  phone: z.string().min(10).optional(),
-  lgpdConsent: z.boolean().optional()
-});
-
-const consentSchema = z.object({
-  lgpdConsent: z.boolean()
-});
-
-const idSchema = z.string().uuid();
+import { createPatientSchema, updatePatientSchema, consentSchema, idSchema } from '../schemas/patient.schema';
 
 export class PatientController {
   private patientService = new PatientService();
