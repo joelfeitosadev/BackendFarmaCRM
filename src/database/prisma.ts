@@ -4,9 +4,11 @@ import { PrismaPg } from '@prisma/adapter-pg';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-function createPrismaClient(): PrismaClient {
+import { fieldEncryptionExtension } from 'prisma-field-encryption';
+
+function createPrismaClient() {
   const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
-  return new PrismaClient({ adapter });
+  return new PrismaClient({ adapter }).$extends(fieldEncryptionExtension()) as unknown as PrismaClient;
 }
 
 export const prisma: PrismaClient = globalForPrisma.prisma ?? createPrismaClient();
