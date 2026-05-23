@@ -27,6 +27,7 @@ O projeto foi construído seguindo as melhores práticas de desenvolvimento, foc
 * **TypeScript:** Utilizado para tipagem estática, garantindo maior segurança e previsibilidade do código.
 * **Prisma ORM:** Escolhido para modelagem do banco de dados relacional (PostgreSQL) e execução das *migrations*.
 * **PostgreSQL:** Banco de dados relacional escolhido para persistência dos dados.
+* **Docker:** Utilizado para conteinerização do ambiente de desenvolvimento (PostgreSQL via docker-compose), garantindo portabilidade e facilidade de setup.
 * **Zod:** Validação robusta de entradas (Schemas) a nível de middleware/controller.
 * **Jest & Supertest:** Ferramentas escolhidas para a suíte de testes de integração e unitários, atingindo a marca de **66 testes (100% de cobertura)**.
 * **Swagger UI (swagger-ui-express & yamljs):** Para a documentação interativa da API de forma padronizada.
@@ -50,7 +51,10 @@ Para rodar este projeto localmente, você precisará ter:
 
 ---
 
-## 🔧 Como Executar a Aplicação Localmente
+## 🔧 Como Executar a Aplicação
+
+### Via Docker (Recomendado)
+Para uma experiência idêntica ao ambiente de produção:
 
 1.  **Clone o repositório:**
     ```bash
@@ -58,19 +62,31 @@ Para rodar este projeto localmente, você precisará ter:
     cd FarmaCRM/BackendFarmaCRM
     ```
 
-2.  **Instale as dependências:**
+2.  **Suba o ambiente (Banco + API):**
+    ```bash
+    docker-compose up --build -d
+    ```
+    O Docker fará o build da aplicação em *multi-stage*, criará as tabelas do banco automaticamente (`prisma db push`) e deixará a API rodando na porta `3000`.
+
+### Localmente (Para Desenvolvimento)
+
+1.  **Instale as dependências:**
     ```bash
     npm install
     ```
 
-3.  **Configure o Banco de Dados:**
-    Crie um arquivo `.env` na raiz e aponte para o seu banco Postgres:
+2.  **Suba apenas o banco de dados via Docker:**
+    ```bash
+    docker-compose up db -d
+    ```
+
+3.  **Configuração de Ambiente:**
+    Crie um arquivo `.env` na raiz e aponte para o banco local:
     ```env
-    DATABASE_URL="postgresql://usuario:senha@localhost:5432/farmacrm?schema=public"
+    DATABASE_URL="postgresql://postgres:password@localhost:5432/farmacrm?schema=public"
     ```
 
 4.  **Sincronize o Prisma (Geração e Push):**
-    Isso irá criar as tabelas no seu banco local e gerar a tipagem do Prisma Client.
     ```bash
     npx prisma db push --accept-data-loss
     npx prisma generate
@@ -80,7 +96,6 @@ Para rodar este projeto localmente, você precisará ter:
     ```bash
     npm run dev
     ```
-    *A API estará acessível em `http://localhost:3000`.*
 
 ---
 
@@ -131,14 +146,14 @@ Com o servidor rodando localmente (`npm run dev`), acesse no seu navegador:
 | Alertas de Vencimento (< 60d) | `/products/expiration-alerts` | GET |
 | Sugestão de Reposição | `/products/restock` | GET |
 
-* **Services (Atendimento & Kanban)**
+* **Orders (Atendimento & Kanban)**
 
 | Action | Endpoint | HTTP Method |
 | :--- | :--- | :--- |
-| Iniciar novo atendimento | `/services` | POST |
-| Buscar atendimento por ID | `/services/:id` | GET |
-| Mover Card no Kanban | `/services/:id/move` | PUT |
-| Anexar Receita Médica | `/services/:id/prescription` | POST |
+| Iniciar novo atendimento | `/orders` | POST |
+| Buscar atendimento por ID | `/orders/:id` | GET |
+| Mover Card no Kanban | `/orders/:id/move` | PUT |
+| Anexar Receita Médica | `/orders/:id/prescription` | POST |
 
 *(Para detalhes exatos de Payload e Responses, verifique o `/api-docs` no navegador).*
 
@@ -172,6 +187,7 @@ The project was built following development best practices, focusing on maintain
 * **TypeScript:** Used for static typing, ensuring greater security and code predictability.
 * **Prisma ORM:** Chosen for relational database modeling (PostgreSQL) and migration execution.
 * **PostgreSQL:** Relational database chosen for data persistence.
+* **Docker:** Used for containerizing the development environment (PostgreSQL via docker-compose), ensuring portability and easy setup.
 * **Zod:** Robust input validation (Schemas) at the middleware/controller level.
 * **Jest & Supertest:** Tools chosen for the integration and unit testing suite, reaching the mark of **66 tests (100% coverage)**.
 * **Swagger UI (swagger-ui-express & yamljs):** For standardized automated interactive API documentation.
@@ -195,7 +211,10 @@ To run this project locally, you will need:
 
 ---
 
-## 🔧 How to Run Locally
+## 🔧 How to Run
+
+### Via Docker (Recommended)
+For an experience identical to the production environment:
 
 1.  **Clone the repository:**
     ```bash
@@ -203,19 +222,31 @@ To run this project locally, you will need:
     cd FarmaCRM/BackendFarmaCRM
     ```
 
-2.  **Install dependencies:**
+2.  **Start the environment (Database + API):**
+    ```bash
+    docker-compose up --build -d
+    ```
+    Docker will multi-stage build the application, automatically create the database tables (`prisma db push`), and leave the API running on port `3000`.
+
+### Locally (For Development)
+
+1.  **Install dependencies:**
     ```bash
     npm install
     ```
 
-3.  **Configure the Database:**
-    Create a `.env` file in the root directory and point to your Postgres database:
+2.  **Start only the database via Docker:**
+    ```bash
+    docker-compose up db -d
+    ```
+
+3.  **Environment Configuration:**
+    Create a `.env` file in the root directory and point to your local database:
     ```env
-    DATABASE_URL="postgresql://user:password@localhost:5432/farmacrm?schema=public"
+    DATABASE_URL="postgresql://postgres:password@localhost:5432/farmacrm?schema=public"
     ```
 
 4.  **Synchronize Prisma (Generate and Push):**
-    This will create tables in your local database and generate the Prisma Client typing.
     ```bash
     npx prisma db push --accept-data-loss
     npx prisma generate
@@ -225,7 +256,6 @@ To run this project locally, you will need:
     ```bash
     npm run dev
     ```
-    *The API will be accessible at `http://localhost:3000`.*
 
 ---
 
@@ -276,14 +306,14 @@ With the server running locally (`npm run dev`), access it in your browser:
 | Expiration Alerts (< 60d) | `/products/expiration-alerts` | GET |
 | Restock Suggestions | `/products/restock` | GET |
 
-* **Services (Desk & Kanban)**
+* **Orders (Desk & Kanban)**
 
 | Action | Endpoint | HTTP Method |
 | :--- | :--- | :--- |
-| Start new service | `/services` | POST |
-| Get service by ID | `/services/:id` | GET |
-| Move Card on Kanban | `/services/:id/move` | PUT |
-| Attach Prescription | `/services/:id/prescription` | POST |
+| Start new order | `/orders` | POST |
+| Get order by ID | `/orders/:id` | GET |
+| Move Card on Kanban | `/orders/:id/move` | PUT |
+| Attach Prescription | `/orders/:id/prescription` | POST |
 
 *(For exact Payload and Response details, please check `/api-docs` in the browser).*
 
