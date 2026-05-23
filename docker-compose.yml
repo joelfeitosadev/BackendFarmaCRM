@@ -1,6 +1,15 @@
-version: '3.8'
-
 services:
+  app:
+    build: .
+    container_name: farmacrm_api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/farmacrm?schema=public
+    depends_on:
+      - db
+
   db:
     image: postgres:15-alpine
     container_name: farmacrm_db
