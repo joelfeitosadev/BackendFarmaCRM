@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { ServiceController } from '../controllers/service.controller';
+import { OrderController } from '../controllers/order.controller';
 
 const router = Router();
-const controller = new ServiceController();
+const controller = new OrderController();
 
 router.post('/', controller.create);
 router.get('/:id', controller.getById);

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const createServiceSchema = z.object({
+export const createOrderSchema = z.object({
   patientId: z.string().uuid(),
   products: z.array(z.object({
     productId: z.string().uuid(),
@@ -10,7 +10,7 @@ export const createServiceSchema = z.object({
   })).min(1)
 });
 
-export const moveServiceSchema = z.object({
+export const moveOrderSchema = z.object({
   status: z.enum(['ORCAMENTO', 'AGUARDANDO_RECEITA', 'PRONTO_ENTREGA', 'FINALIZADO'])
 });
 

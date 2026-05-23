@@ -1,10 +1,10 @@
 import prisma from '../database/prisma';
-import { Prisma, ServiceStatus } from '@prisma/client';
-import { ICreateService } from '../interfaces/service.interface';
+import { Prisma, OrderStatus } from '@prisma/client';
+import { ICreateOrder } from '../interfaces/order.interface';
 
-export class ServiceRepository {
-  async create(data: ICreateService) {
-    return prisma.service.create({
+export class OrderRepository {
+  async create(data: ICreateOrder) {
+    return prisma.order.create({
       data: {
         patientId: data.patientId,
         status: 'ORCAMENTO',
@@ -24,7 +24,7 @@ export class ServiceRepository {
   }
 
   async findById(id: string) {
-    return prisma.service.findUnique({
+    return prisma.order.findUnique({
       where: { id },
       include: {
         products: {
@@ -37,15 +37,15 @@ export class ServiceRepository {
     });
   }
 
-  async updateStatus(id: string, status: ServiceStatus) {
-    return prisma.service.update({
+  async updateStatus(id: string, status: OrderStatus) {
+    return prisma.order.update({
       where: { id },
       data: { status }
     });
   }
 
   async setPrescription(id: string, prescriptionData: string) {
-    return prisma.service.update({
+    return prisma.order.update({
       where: { id },
       data: {
         prescriptionData,

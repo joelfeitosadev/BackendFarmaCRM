@@ -6,7 +6,7 @@ datasource db {
   provider = "postgresql"
 }
 
-enum ServiceStatus {
+enum OrderStatus {
   ORCAMENTO
   AGUARDANDO_RECEITA
   PRONTO_ENTREGA
@@ -19,7 +19,7 @@ model Patient {
   phone            String
   lastPurchaseDate DateTime?
   lgpdConsent      Boolean   @default(false)
-  services         Service[]
+  orders           Order[]
   
   // Histórico médico sensível
   medicalHistory   String?   /// @encrypted
@@ -39,21 +39,21 @@ model Product {
   abcClass          String           @default("C") @db.Char(1)
   minimumStock      Int              @default(0)
 
-  services          ServiceProduct[]
+  orders            OrderProduct[]
 
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 }
 
-model Service {
+model Order {
   id                    String           @id @default(uuid())
   patientId             String
   patient               Patient          @relation(fields: [patientId], references: [id])
-  status                ServiceStatus    @default(ORCAMENTO)
+  status                OrderStatus    @default(ORCAMENTO)
   prescriptionValidated Boolean          @default(false)
   
   // Relacionamento N:M com produtos e suas quantidades
-  products              ServiceProduct[]
+  products              OrderProduct[]
 
   // Receitas ou laudos médicos
   prescriptionData      String?          /// @encrypted
@@ -62,10 +62,10 @@ model Service {
   updatedAt             DateTime         @updatedAt
 }
 
-model ServiceProduct {
+model OrderProduct {
   id        String   @id @default(uuid())
-  serviceId String
-  service   Service  @relation(fields: [serviceId], references: [id])
+  orderId   String
+  order     Order  @relation(fields: [orderId], references: [id])
   productId String
   product   Product  @relation(fields: [productId], references: [id])
   quantity             Int      @default(1)
@@ -75,7 +75,7 @@ model ServiceProduct {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([serviceId, productId])
+  @@unique([orderId, productId])
 }
 
 model AuditLog {

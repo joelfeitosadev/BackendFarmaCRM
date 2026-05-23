@@ -7,7 +7,7 @@ import { requestLogger } from './middlewares/requestLogger';
 
 import patientRoutes from './routes/patient.routes';
 import productRoutes from './routes/product.routes';
-import serviceRoutes from './routes/service.routes';
+import orderRoutes from './routes/order.routes';
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 import path from 'path';
@@ -22,7 +22,7 @@ app.use(requestLogger);
 
 app.use('/patients', patientRoutes);
 app.use('/products', productRoutes);
-app.use('/services', serviceRoutes);
+app.use('/orders', orderRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use(errorHandler);

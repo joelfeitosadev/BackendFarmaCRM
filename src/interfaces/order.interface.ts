@@ -1,25 +1,25 @@
-export type ServiceStatus = 'ORCAMENTO' | 'AGUARDANDO_RECEITA' | 'PRONTO_ENTREGA' | 'FINALIZADO';
+export type OrderStatus = 'ORCAMENTO' | 'AGUARDANDO_RECEITA' | 'PRONTO_ENTREGA' | 'FINALIZADO';
 
-export interface IService {
+export interface IOrder {
   id: string;
   patientId: string;
-  status: ServiceStatus;
+  status: OrderStatus;
   prescriptionValidated: boolean;
   prescriptionData: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface IServiceProduct {
+export interface IOrderProduct {
   id: string;
-  serviceId: string;
+  orderId: string;
   productId: string;
   quantity: number;
   dosageAmount: number;
   dosageIntervalDays: number;
 }
 
-export interface ICreateService {
+export interface ICreateOrder {
   patientId: string;
   products: Array<{
     productId: string;
@@ -29,6 +29,6 @@ export interface ICreateService {
   }>;
 }
 
-export interface IMoveService {
-  status: ServiceStatus;
+export interface IMoveOrder {
+  status: OrderStatus;
 }

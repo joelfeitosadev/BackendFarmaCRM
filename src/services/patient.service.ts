@@ -73,13 +73,13 @@ export class PatientService {
     if (!patient) {
       throw new NotFoundError('Patient not found');
     }
-    const services = await prisma.service.findMany({
+    const orders = await prisma.order.findMany({
       where: { patientId: id, status: 'FINALIZADO' },
       include: { products: { include: { product: true } } }
     });
-    const ltv = services.reduce((total, service) => {
-      return total + service.products.reduce((sum, sp) => {
-        return sum + Number(sp.product.accumulatedProfit);
+    const ltv = orders.reduce((total, order) => {
+      return total + order.products.reduce((sum, op) => {
+        return sum + Number(op.product.accumulatedProfit);
       }, 0);
     }, 0);
     return { patientId: id, ltv };
@@ -87,33 +87,33 @@ export class PatientService {
 
   async getContinuousUse() {
     const today = new Date();
-    const serviceProducts = await prisma.serviceProduct.findMany({
-      where: { service: { status: 'FINALIZADO' } },
+    const orderProducts = await prisma.orderProduct.findMany({
+      where: { order: { status: 'FINALIZADO' } },
       include: {
-        service: { include: { patient: true } },
+        order: { include: { patient: true } },
         product: true
       }
     });
 
-    return serviceProducts
-      .filter(sp => {
-        const lastPurchase = sp.service.patient.lastPurchaseDate;
+    return orderProducts
+      .filter(op => {
+        const lastPurchase = op.order.patient.lastPurchaseDate;
         if (!lastPurchase) return false;
-        const consumptionPerDay = sp.dosageAmount / sp.dosageIntervalDays;
-        const daysOfSupply = sp.quantity / consumptionPerDay;
+        const consumptionPerDay = op.dosageAmount / op.dosageIntervalDays;
+        const daysOfSupply = op.quantity / consumptionPerDay;
         const refillDate = new Date(lastPurchase);
         refillDate.setDate(refillDate.getDate() + Math.floor(daysOfSupply));
         const sevenDaysFromNow = new Date();
         sevenDaysFromNow.setDate(today.getDate() + 7);
         return refillDate <= sevenDaysFromNow;
       })
-      .map(sp => ({
-        patient: sp.service.patient,
-        product: sp.product,
+      .map(op => ({
+        patient: op.order.patient,
+        product: op.product,
         refillDue: (() => {
-          const lastPurchase = sp.service.patient.lastPurchaseDate!;
-          const consumptionPerDay = sp.dosageAmount / sp.dosageIntervalDays;
-          const daysOfSupply = sp.quantity / consumptionPerDay;
+          const lastPurchase = op.order.patient.lastPurchaseDate!;
+          const consumptionPerDay = op.dosageAmount / op.dosageIntervalDays;
+          const daysOfSupply = op.quantity / consumptionPerDay;
           const refillDate = new Date(lastPurchase);
           refillDate.setDate(refillDate.getDate() + Math.floor(daysOfSupply));
           return refillDate;

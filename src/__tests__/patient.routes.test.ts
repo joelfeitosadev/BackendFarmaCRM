@@ -149,7 +149,7 @@ describe('Patient Routes', () => {
   describe('GET /patients/:id/ltv', () => {
     it('should return 200 OK with LTV calculation', async () => {
       prismaMock.patient.findUnique.mockResolvedValue({ id: mockUUID } as any);
-      prismaMock.service.findMany.mockResolvedValue([]);
+      prismaMock.order.findMany.mockResolvedValue([]);
       const res = await request(app).get(`/patients/${mockUUID}/ltv`);
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('ltv');
@@ -176,14 +176,14 @@ describe('Patient Routes', () => {
   // ─── GET /patients/continuous-use ─────────────────────────────────────────
   describe('GET /patients/continuous-use', () => {
     it('should return 200 OK with patients needing refill', async () => {
-      prismaMock.serviceProduct.findMany.mockResolvedValue([]);
+      prismaMock.orderProduct.findMany.mockResolvedValue([]);
       const res = await request(app).get('/patients/continuous-use');
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
     });
 
     it('should return 500 Internal Server Error on failure', async () => {
-      prismaMock.serviceProduct.findMany.mockRejectedValue(new Error('DB error'));
+      prismaMock.orderProduct.findMany.mockRejectedValue(new Error('DB error'));
       const res = await request(app).get('/patients/continuous-use');
       expect(res.status).toBe(500);
     });

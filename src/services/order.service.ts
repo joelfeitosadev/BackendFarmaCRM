@@ -1,17 +1,17 @@
-import { ServiceRepository } from '../repositories/service.repository';
+import { OrderRepository } from '../repositories/order.repository';
 import { PatientRepository } from '../repositories/patient.repository';
 import { ProductRepository } from '../repositories/product.repository';
 import { ConflictError, NotFoundError, ForbiddenError } from '../utils/errors';
-import { ICreateService } from '../interfaces/service.interface';
-import { ServiceStatus } from '@prisma/client';
+import { ICreateOrder } from '../interfaces/order.interface';
+import { OrderStatus } from '@prisma/client';
 import prisma from '../database/prisma';
 
-export class ServiceService {
-  private serviceRepository = new ServiceRepository();
+export class OrderService {
+  private orderRepository = new OrderRepository();
   private patientRepository = new PatientRepository();
   private productRepository = new ProductRepository();
 
-  async createService(data: ICreateService) {
+  async createOrder(data: ICreateOrder) {
     const patient = await this.patientRepository.findById(data.patientId);
     if (!patient) {
       throw new NotFoundError('Patient not found');
@@ -21,19 +21,19 @@ export class ServiceService {
       throw new ConflictError('Products array is required and cannot be empty');
     }
 
-    return this.serviceRepository.create(data);
+    return this.orderRepository.create(data);
   }
 
-  async getServiceById(id: string) {
-    const service = await this.serviceRepository.findById(id);
-    if (!service) {
-      throw new NotFoundError('Service not found');
+  async getOrderById(id: string) {
+    const order = await this.orderRepository.findById(id);
+    if (!order) {
+      throw new NotFoundError('Order not found');
     }
-    return service;
+    return order;
   }
 
-  async moveService(id: string, newStatus: ServiceStatus) {
-    const service = await this.getServiceById(id);
+  async moveOrder(id: string, newStatus: OrderStatus) {
+    const order = await this.getOrderById(id);
 
     const validTransitions: Record<string, string> = {
       'ORCAMENTO': 'AGUARDANDO_RECEITA',
@@ -41,18 +41,17 @@ export class ServiceService {
       'PRONTO_ENTREGA': 'FINALIZADO'
     };
 
-    if (validTransitions[service.status] !== newStatus) {
-      throw new ConflictError(`Invalid status transition from ${service.status} to ${newStatus}`);
+    if (validTransitions[order.status] !== newStatus) {
+      throw new ConflictError(`Invalid status transition from ${order.status} to ${newStatus}`);
     }
 
-    if (newStatus === 'FINALIZADO' && !service.prescriptionValidated) {
+    if (newStatus === 'FINALIZADO' && !order.prescriptionValidated) {
       throw new ForbiddenError('Cannot finalize without validated prescription');
     }
 
     if (newStatus === 'PRONTO_ENTREGA') {
-      // Check stock and decrement
       await prisma.$transaction(async (tx) => {
-        for (const sp of service.products) {
+        for (const sp of order.products) {
           const product = await tx.product.findUnique({ where: { id: sp.productId }});
           if (!product || product.stockQuantity < sp.quantity) {
             throw new ConflictError(`Insufficient stock for product ${sp.productId}`);
@@ -65,15 +64,15 @@ export class ServiceService {
       });
     }
 
-    return this.serviceRepository.updateStatus(id, newStatus);
+    return this.orderRepository.updateStatus(id, newStatus);
   }
 
   async addPrescription(id: string, prescriptionData: string) {
     if (!prescriptionData) {
       throw new ConflictError('prescriptionData is required');
     }
-    await this.getServiceById(id);
+    await this.getOrderById(id);
     const encrypted = Buffer.from(prescriptionData).toString('base64');
-    return this.serviceRepository.setPrescription(id, encrypted);
+    return this.orderRepository.setPrescription(id, encrypted);
   }
 }
